@@ -1,0 +1,24 @@
+include .env
+
+.PHONY: tag
+tag:
+	docker tag $(DOCKER_USER)/btfs:latest $(DOCKER_USER)/btfs:$(TAG)
+
+.INTERMEDIATE: .digest
+.digest:
+	if [ '$(shell docker image inspect $(DOCKER_USER)/btfs:latest)' != '$(shell cat .digest)' ]; then \
+		echo $(shell docker image inspect $(DOCKER_USER)/btfs:latest) > .digest; \
+	fi
+
+.env: .digest
+	echo TAG=$(shell echo $(shell docker run $(DOCKER_USER)/btfs:latest version) | awk '{print $$3}') > .env
+	echo DOCKER_USER=$(DOCKER_USER) >> .env
+
+.PHONY: build
+build:
+	docker build --pull -t $(DOCKER_USER)/btfs:latest .
+
+.PHONY: push
+push:
+	docker push $(DOCKER_USER)/btfs:latest
+	docker push $(DOCKER_USER)/btfs:$(TAG)
